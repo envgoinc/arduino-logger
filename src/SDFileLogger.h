@@ -23,6 +23,7 @@ class SDFileLogger final : public LoggerBase
 {
   private:
 	static constexpr size_t BUFFER_SIZE = 512;
+	static constexpr size_t LOG_FILE_SIZE = 150 * 1000 * 1000;
 
   public:
 	/// Default constructor
@@ -58,11 +59,10 @@ class SDFileLogger final : public LoggerBase
 
 		// Clear current file contents
 		file_.truncate(0);
+		file_.preAllocate(LOG_FILE_SIZE);
 
 		// Flush the buffer since the file is open
 		flush();
-
-		file_.close();
 	}
 
   protected:
@@ -111,11 +111,6 @@ class SDFileLogger final : public LoggerBase
 
 	void writeBufferToSDFile()
 	{
-		if(!file_.open(filename_, O_WRITE | O_APPEND))
-		{
-			errorHalt("Failed to open file");
-		}
-
 		int bytes_written = 0;
 
 		// We need to get the front, the rear, and potentially write the files in two steps
@@ -143,9 +138,8 @@ class SDFileLogger final : public LoggerBase
 			errorHalt("Failed to write to log file");
 		}
 
+		file_.flush();
 		log_buffer_.reset();
-
-		file_.close();
 	}
 
   private:
