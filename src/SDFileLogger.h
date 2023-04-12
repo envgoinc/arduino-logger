@@ -23,7 +23,6 @@ class SDFileLogger final : public LoggerBase
 {
   private:
 	static constexpr size_t BUFFER_SIZE = 512;
-	static constexpr size_t LOG_FILE_SIZE = 150 * 1000 * 1000;
 
   public:
 	/// Default constructor
@@ -59,7 +58,6 @@ class SDFileLogger final : public LoggerBase
 
 		// Clear current file contents
 		file_.truncate(0);
-		file_.preAllocate(LOG_FILE_SIZE);
 
 		// Flush the buffer since the file is open
 		flush();
