@@ -63,6 +63,10 @@ class SDFileLogger final : public LoggerBase
 		flush();
 	}
 
+	void update_file_name(uint8_t fileNumber){
+		snprintf(filename_, 11, "log%.03d.txt", fileNumber);
+	}
+
   protected:
 	void log_putc(char c) noexcept final
 	{
@@ -142,7 +146,7 @@ class SDFileLogger final : public LoggerBase
 
   private:
 	SdFs* fs_;
-	const char* filename_ = "log.txt";
+	char filename_[11] = "log001.txt";
 	mutable FsFile file_;
 
 	CircularBuffer<char, BUFFER_SIZE> log_buffer_;
