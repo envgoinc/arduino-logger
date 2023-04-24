@@ -47,11 +47,11 @@ class SDFileLogger final : public LoggerBase
 		print("[%d ms] ", millis());
 	}
 
-	void begin(SdFs& sd_inst)
+	void begin(SdFs& sd_inst, const char filename[13] = "log000.txt")
 	{
 		fs_ = &sd_inst;
 
-		if(!file_.open(filename_, O_WRITE | O_CREAT))
+		if(!file_.open(filename, O_WRITE | O_CREAT))
 		{
 			errorHalt("Failed to open file");
 		}
@@ -142,9 +142,7 @@ class SDFileLogger final : public LoggerBase
 
   private:
 	SdFs* fs_;
-	const char* filename_ = "log.txt";
 	mutable FsFile file_;
-
 	CircularBuffer<char, BUFFER_SIZE> log_buffer_;
 };
 
