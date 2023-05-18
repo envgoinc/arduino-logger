@@ -22,7 +22,7 @@
 class SDFileLogger final : public LoggerBase
 {
   private:
-	static constexpr size_t BUFFER_SIZE = 512;
+	static constexpr size_t BUFFER_SIZE = 1024;
 
   public:
 	/// Default constructor
@@ -62,16 +62,16 @@ class SDFileLogger final : public LoggerBase
 		// Flush the buffer since the file is open
 		flush();
 	}
+	
+	size_t internal_size() const noexcept override
+	{
+		return log_buffer_.size();
+	}
 
   protected:
 	void log_putc(char c) noexcept final
 	{
 		log_buffer_.put(c);
-	}
-
-	size_t internal_size() const noexcept override
-	{
-		return log_buffer_.size();
 	}
 
 	size_t internal_capacity() const noexcept override
