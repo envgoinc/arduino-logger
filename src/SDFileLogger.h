@@ -23,6 +23,7 @@ class SDFileLogger final : public LoggerBase
 {
   private:
 	static constexpr size_t BUFFER_SIZE = 1024;
+	static constexpr size_t READY_BUFFER_SIZE = 512;
 
   public:
 	/// Default constructor
@@ -68,6 +69,23 @@ class SDFileLogger final : public LoggerBase
 		return log_buffer_.size();
 	}
 
+	size_t buffer_is_empty()
+	{
+		return log_buffer_.empty();
+	}
+
+	void prepareBuffer()
+	{
+		int val_size = sizeof(char);
+		for(int i = 0; i < (READY_BUFFER_SIZE/val_size); i++){
+			char c = log_buffer_.get();
+			if(c == '\0'){
+				break;
+			}
+			ready_buffer_.put(c);
+		}
+	}
+
   protected:
 	void log_putc(char c) noexcept final
 	{
@@ -81,7 +99,12 @@ class SDFileLogger final : public LoggerBase
 
 	void flush_() noexcept final
 	{
-		writeBufferToSDFile();
+		if(!ready_buffer_.empty()){
+			writeReadyBufferToSDFile();
+		}
+		else{
+			writeBufferToSDFile();
+		}
 	}
 
 	void clear_() noexcept final
@@ -140,10 +163,44 @@ class SDFileLogger final : public LoggerBase
 		log_buffer_.reset();
 	}
 
+	void writeReadyBufferToSDFile()
+	{
+		int bytes_written = 0;
+
+		// We need to get the front, the rear, and potentially write the files in two steps
+		// to prevent ordering problems
+		size_t head = ready_buffer_.head();
+		size_t tail = ready_buffer_.tail();
+		const char* buffer = ready_buffer_.storage();
+
+		if((head < tail) || ((tail > 0) && (ready_buffer_.size() == ready_buffer_.capacity())))
+		{
+			// we have a wraparound case
+			// We will write from buffer[tail] to buffer[size] in one go
+			// Then we'll reset head to 0 so that we can write 0 to tail next
+			bytes_written = file_.write(&buffer[tail], ready_buffer_.capacity() - tail);
+			bytes_written += file_.write(buffer, head);
+		}
+		else
+		{
+			// Write from tail position and send the specified number of bytes
+			bytes_written = file_.write(&buffer[tail], ready_buffer_.size());
+		}
+
+		if(static_cast<size_t>(bytes_written) != ready_buffer_.size())
+		{
+			errorHalt("Failed to write ready buffer to log file");
+		}
+
+		file_.flush();
+		ready_buffer_.reset();
+	}
+
   private:
 	SdFs* fs_;
 	mutable FsFile file_;
 	CircularBuffer<char, BUFFER_SIZE> log_buffer_;
+	CircularBuffer<char, READY_BUFFER_SIZE> ready_buffer_;
 };
 
 #endif // SD_FILE_LOGGER_H_

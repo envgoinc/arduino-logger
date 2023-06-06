@@ -85,6 +85,18 @@ class CircularBuffer
 		return tail_;
 	}
 
+	// size_t setHead(size_t head){
+	// 	head_ = head;
+	// }
+	
+	// size_t setTail(size_t tail){
+	// 	tail_ = tail; 
+	// }
+
+	// size_t setFull(bool full){
+	// 	full_ = full; 
+	// }
+
 	const T* storage()
 	{
 		return &buf_[0];
