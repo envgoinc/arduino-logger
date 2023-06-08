@@ -22,7 +22,7 @@
 class SDFileLogger final : public LoggerBase
 {
   private:
-	static constexpr size_t BUFFER_SIZE = 1024;
+	static constexpr size_t BUFFER_SIZE = 2048;
 	static constexpr size_t READY_BUFFER_SIZE = 512;
 
   public:
@@ -76,13 +76,18 @@ class SDFileLogger final : public LoggerBase
 
 	void prepareBuffer()
 	{
-		int val_size = sizeof(char);
+		size_t val_size = sizeof(char);
 		for(int i = 0; i < (READY_BUFFER_SIZE/val_size); i++){
-			char c = log_buffer_.get();
-			if(c == '\0'){
+			if(!ready_buffer_.full()){
+				char c = log_buffer_.get();
+				if(c == char()){
+					break;
+				}
+				ready_buffer_.put(c);
+			}
+			else{
 				break;
 			}
-			ready_buffer_.put(c);
 		}
 	}
 
@@ -100,10 +105,10 @@ class SDFileLogger final : public LoggerBase
 	void flush_() noexcept final
 	{
 		if(!ready_buffer_.empty()){
-			writeReadyBufferToSDFile();
+			writeBufferToSDFile(&ready_buffer_);
 		}
 		else{
-			writeBufferToSDFile();
+			writeBufferToSDFile(&log_buffer_);
 		}
 	}
 
@@ -129,77 +134,47 @@ class SDFileLogger final : public LoggerBase
 		{
 		}
 	}
-
-	void writeBufferToSDFile()
+	
+	template<size_t T>
+	void writeBufferToSDFile(CircularBuffer<char, T> *circular_buffer)
 	{
 		int bytes_written = 0;
 
 		// We need to get the front, the rear, and potentially write the files in two steps
 		// to prevent ordering problems
-		size_t head = log_buffer_.head();
-		size_t tail = log_buffer_.tail();
-		const char* buffer = log_buffer_.storage();
+		size_t head = circular_buffer->head();
+		size_t tail = circular_buffer->tail();
+		const char* buffer = circular_buffer->storage();
 
-		if((head < tail) || ((tail > 0) && (log_buffer_.size() == log_buffer_.capacity())))
+		if((head < tail) || ((tail > 0) && (circular_buffer->size() == circular_buffer->capacity())))
 		{
 			// we have a wraparound case
 			// We will write from buffer[tail] to buffer[size] in one go
 			// Then we'll reset head to 0 so that we can write 0 to tail next
-			bytes_written = file_.write(&buffer[tail], log_buffer_.capacity() - tail);
+			bytes_written = file_.write(&buffer[tail], circular_buffer->capacity() - tail);
 			bytes_written += file_.write(buffer, head);
 		}
 		else
 		{
 			// Write from tail position and send the specified number of bytes
-			bytes_written = file_.write(&buffer[tail], log_buffer_.size());
+			bytes_written = file_.write(&buffer[tail], circular_buffer->size());
 		}
 
-		if(static_cast<size_t>(bytes_written) != log_buffer_.size())
+		if(static_cast<size_t>(bytes_written) != circular_buffer->size())
 		{
 			errorHalt("Failed to write to log file");
 		}
 
 		file_.flush();
-		log_buffer_.reset();
-	}
-
-	void writeReadyBufferToSDFile()
-	{
-		int bytes_written = 0;
-
-		// We need to get the front, the rear, and potentially write the files in two steps
-		// to prevent ordering problems
-		size_t head = ready_buffer_.head();
-		size_t tail = ready_buffer_.tail();
-		const char* buffer = ready_buffer_.storage();
-
-		if((head < tail) || ((tail > 0) && (ready_buffer_.size() == ready_buffer_.capacity())))
-		{
-			// we have a wraparound case
-			// We will write from buffer[tail] to buffer[size] in one go
-			// Then we'll reset head to 0 so that we can write 0 to tail next
-			bytes_written = file_.write(&buffer[tail], ready_buffer_.capacity() - tail);
-			bytes_written += file_.write(buffer, head);
-		}
-		else
-		{
-			// Write from tail position and send the specified number of bytes
-			bytes_written = file_.write(&buffer[tail], ready_buffer_.size());
-		}
-
-		if(static_cast<size_t>(bytes_written) != ready_buffer_.size())
-		{
-			errorHalt("Failed to write ready buffer to log file");
-		}
-
-		file_.flush();
-		ready_buffer_.reset();
+		circular_buffer->reset();
 	}
 
   private:
 	SdFs* fs_;
 	mutable FsFile file_;
-	CircularBuffer<char, BUFFER_SIZE> log_buffer_;
+
+  protected:
+  	CircularBuffer<char, BUFFER_SIZE> log_buffer_;
 	CircularBuffer<char, READY_BUFFER_SIZE> ready_buffer_;
 };
 
