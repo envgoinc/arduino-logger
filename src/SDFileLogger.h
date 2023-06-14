@@ -21,10 +21,6 @@
  */
 class SDFileLogger final : public LoggerBase
 {
-  private:
-	// static constexpr size_t BUFFER_SIZE = 2048;
-	// static constexpr size_t READY_BUFFER_SIZE = 512;
-
   public:
   	static constexpr size_t BUFFER_SIZE = 2048;
 	static constexpr size_t READY_BUFFER_SIZE = 512;
