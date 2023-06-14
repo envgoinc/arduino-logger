@@ -452,7 +452,7 @@ class LoggerBase
 	/// Can be overridden if desired
 	virtual void flush() noexcept
 	{
-		if(internal_size() > 0)
+		if(internal_size() > 0 || (ready_buffer_exists() && ready_buffer_internal_size() > 0))
 		{
 			flush_();
 			if(overrun_occurred_)
@@ -462,6 +462,21 @@ class LoggerBase
 			}
 			overrun_occurred_ = false;
 		}
+	}
+
+	// Returns the amount of data being held by the ready buffer
+	// Must implement in the derived class
+	virtual size_t ready_buffer_internal_size() const noexcept
+	{
+		return size();
+	}
+
+	// Returns whether or not a ready buffer exists
+	// Defaults to false
+	// Must implement in the derived class
+	virtual bool ready_buffer_exists() const noexcept
+	{
+		return false;
 	}
 
 	/// Clear the contents of the log buffer

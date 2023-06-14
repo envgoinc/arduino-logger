@@ -72,6 +72,20 @@ class SDFileLogger final : public LoggerBase
 		return log_buffer_.size();
 	}
 
+	size_t ready_buffer_internal_size() const noexcept override
+	{
+		return ready_buffer_.size();
+	}
+
+	bool ready_buffer_exists() const noexcept override
+	{
+		if(&ready_buffer_){
+			return true;
+		}
+		return false;
+	}
+
+
 	size_t buffer_is_empty()
 	{
 		return log_buffer_.empty();
@@ -79,88 +93,72 @@ class SDFileLogger final : public LoggerBase
 
 	void prepareBuffer()
 	{
-		// printf("\n == log_buffer contents start == \n");
-			size_t head = log_buffer_.head();
-			size_t tail = log_buffer_.tail();
-			char* buffer = log_buffer_.storage();
-			char* ready_buffer = ready_buffer_.storage();
-			size_t length = 0;
-			
-			if((head < tail) || ((tail > 0) && (log_buffer_.size() == log_buffer_.capacity())))
-			{
-				//printf("==== Wraparound case ====\n");
-				// we have a wraparound case
-				// We will write from buffer[tail] to buffer[size] in one go
-				// Then we'll reset head to 0 so that we can write 0 to tail next
-				length = (log_buffer_.capacity() - tail);
-				if(length >= READY_BUFFER_SIZE){
-					// When there is enough data from tail to end of buffer, we only write
-					// 	 as much data as we can from the tail
-					length = READY_BUFFER_SIZE;
-					//printf("==== memcpy to %p from %p, of length %d ====\n", &ready_buffer[0], &buffer[tail], length);
-					memcpy((void *) &ready_buffer[0], &buffer[tail], length);
-					log_buffer_.setTail((tail + length) % BUFFER_SIZE);
-					log_buffer_.setFull(false);
-					ready_buffer_.setTail(0);
-					ready_buffer_.setHead(length % READY_BUFFER_SIZE);
-					ready_buffer_.setFull(true);
-				}
-				else{
-					// When there is less data from tail to end of buffer, we write all
-					// 	data from the tail to end of buffer, and continue from 0 to head
-					//printf("==== memcpy to %p from %p, of length %d ====\n", &ready_buffer[0], &buffer[tail], length);
-					size_t size = length;
-					memcpy((void *) &ready_buffer[0], &buffer[tail], length);
-					length = (READY_BUFFER_SIZE - length) > head ? head : (READY_BUFFER_SIZE - length);
-					//printf("==== memcpy to %p from %p, of length %d ====\n", &ready_buffer[size], &buffer[0], length);
-					memcpy((void *) &ready_buffer[size], &buffer[0], length);
-					size += length;
-					log_buffer_.setTail(length % BUFFER_SIZE);
-					log_buffer_.setFull(false);
-					ready_buffer_.setTail(0);
-					ready_buffer_.setHead(size % READY_BUFFER_SIZE);
-					if(size >= READY_BUFFER_SIZE) {
-						ready_buffer_.setFull(true);
-					}
-					else{
-						ready_buffer_.setFull(false);
-					} 
-				}
-			}
-			else
-			{
-				// No wraparound case
-				// Write from tail position and send the specified number of bytes
-				//printf("==== No wraparound case ====\n");
-				size_t length = (head - tail) > READY_BUFFER_SIZE ? READY_BUFFER_SIZE : (head - tail);
-				//printf("==== memcpy to %p from %p, of length %d ====\n", &ready_buffer[0], &buffer[tail], length);
-				memcpy((void*)  &ready_buffer[0], &buffer[tail], length);
+		size_t head = log_buffer_.head();
+		size_t tail = log_buffer_.tail();
+		char* buffer = log_buffer_.storage();
+		char* ready_buffer = ready_buffer_.storage();
+		size_t length = 0;
+
+		if((head < tail) || ((tail > 0) && (log_buffer_.size() == log_buffer_.capacity())))
+		{
+			// we have a wraparound case
+			// We will write from buffer[tail] to buffer[size] in one go
+			// Then we'll reset head to 0 so that we can write 0 to tail next
+			length = (log_buffer_.capacity() - tail);
+			if(length >= READY_BUFFER_SIZE){
+				// When there is enough data from tail to end of buffer, we only write
+				// 	 as much data as we can from the tail
+				length = READY_BUFFER_SIZE;
+				memcpy((void *) &ready_buffer[0], &buffer[tail], length);
 				log_buffer_.setTail((tail + length) % BUFFER_SIZE);
-				log_buffer_.setFull(false );
+				log_buffer_.setFull(false);
 				ready_buffer_.setTail(0);
 				ready_buffer_.setHead(length % READY_BUFFER_SIZE);
-				if(length >= READY_BUFFER_SIZE){
+				ready_buffer_.setFull(true);
+			}
+			else{
+				// When there is less data from tail to end of buffer, we write all
+				// 	data from the tail to end of buffer, and continue from 0 to head
+				size_t size = length;
+				memcpy((void *) &ready_buffer[0], &buffer[tail], length);
+				length = (READY_BUFFER_SIZE - length) > head ? head : (READY_BUFFER_SIZE - length);
+				memcpy((void *) &ready_buffer[size], &buffer[0], length);
+				size += length;
+				log_buffer_.setTail(length % BUFFER_SIZE);
+				log_buffer_.setFull(false);
+				ready_buffer_.setTail(0);
+				ready_buffer_.setHead(size % READY_BUFFER_SIZE);
+				if(size >= READY_BUFFER_SIZE) {
 					ready_buffer_.setFull(true);
 				}
 				else{
 					ready_buffer_.setFull(false);
 				} 
 			}
-		// printf("\n == log_buffer contents end == \n");
-		
-		// size_t val_size = sizeof(char);
-		// for(int i = 0; i < (READY_BUFFER_SIZE/val_size); i++){
-		// 	if(!ready_buffer_.full()){
-		// 		char c = log_buffer_.get();
-		// 		if(c == char()){
-		// 			break;
-		// 		}
-		// 		ready_buffer_.put(c);
-		// 	}
-		// 	else{
-		// 		break;
-		// 	}
-		// }
+		}
+		else
+		{
+			// No wraparound case
+			// Write from tail position and send the specified number of bytes
+			size_t length = (head - tail) > READY_BUFFER_SIZE ? READY_BUFFER_SIZE : (head - tail);
+			memcpy((void*)  &ready_buffer[0], &buffer[tail], length);
+			log_buffer_.setTail((tail + length) % BUFFER_SIZE);
+			log_buffer_.setFull(false );
+			ready_buffer_.setTail(0);
+			ready_buffer_.setHead(length % READY_BUFFER_SIZE);
+			if(length >= READY_BUFFER_SIZE){
+				ready_buffer_.setFull(true);
+			}
+			else{
+				ready_buffer_.setFull(false);
+			} 
+		}
+
+		size_t start = ready_buffer_.tail();
+		size_t end = ((ready_buffer_.head() == 0) && ready_buffer_.full()) ? READY_BUFFER_SIZE : ready_buffer_.head();
+		for(int i = start; i < end; i++){
+			printf("%c", ready_buffer[i]);
+		}
 	}
 
   protected:
