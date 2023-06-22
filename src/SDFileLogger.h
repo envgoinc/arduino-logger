@@ -63,7 +63,7 @@ class SDFileLogger final : public LoggerBase
 		// Flush the buffer since the file is open
 		flush();
 	}
-	
+
 	size_t internal_size() const noexcept override
 	{
 		return log_buffer_.size();
@@ -96,7 +96,7 @@ class SDFileLogger final : public LoggerBase
 	void prepareBuffer()
 	{
 		size_t val_size = sizeof(char);
-		for(int i = 0; i < (READY_BUFFER_SIZE/val_size); i++){
+		for(size_t i = 0; i < (READY_BUFFER_SIZE/val_size); i++){
 			if(!ready_buffer_.full()){
 				char c = log_buffer_.get();
 				if(c == char()){
@@ -153,7 +153,7 @@ class SDFileLogger final : public LoggerBase
 		{
 		}
 	}
-	
+
 	template<size_t T>
 	void writeBufferToSDFile(CircularBuffer<char, T> *circular_buffer)
 	{
