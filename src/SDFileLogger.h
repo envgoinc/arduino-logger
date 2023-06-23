@@ -22,7 +22,7 @@
 class SDFileLogger final : public LoggerBase
 {
   private:
-	static constexpr size_t BUFFER_SIZE = 2048;
+  	static constexpr size_t BUFFER_SIZE = 2048;
 	static constexpr size_t READY_BUFFER_SIZE = 512;
 
   public:
@@ -68,6 +68,25 @@ class SDFileLogger final : public LoggerBase
 	{
 		return log_buffer_.size();
 	}
+
+	size_t ready_buffer_internal_size() const noexcept override
+	{
+		return ready_buffer_.size();
+	}
+
+	size_t ready_buffer_internal_capacity()
+	{
+		return ready_buffer_.capacity();
+	}
+
+	bool ready_buffer_exists() const noexcept override
+	{
+		if(&ready_buffer_){
+			return true;
+		}
+		return false;
+	}
+
 
 	size_t buffer_is_empty()
 	{
