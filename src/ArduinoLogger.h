@@ -468,7 +468,7 @@ class LoggerBase
 	// Must implement in the derived class
 	virtual size_t ready_buffer_internal_size() const noexcept
 	{
-		return size();
+		return 0;
 	}
 
 	// Returns whether or not a ready buffer exists
