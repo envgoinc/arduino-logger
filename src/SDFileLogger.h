@@ -75,7 +75,7 @@ class SDFileLogger final : public LoggerBase
 		}
 	}
 
-	void change_file(const char filename[15] = "log000.txt"){
+	void open_file(const char filename[15] = "log000.txt"){
 		if(!file_.open(filename, O_WRITE | O_CREAT))
 		{
 			errorHalt("Failed to open file");
