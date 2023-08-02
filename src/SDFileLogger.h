@@ -75,14 +75,15 @@ class SDFileLogger final : public LoggerBase
 		}
 	}
 
-	void open_file(const char filename[15] = "log000.txt"){
+	bool open_file(const char filename[15] = "log000.txt"){
 		if(!file_.open(filename, O_WRITE | O_CREAT))
 		{
-			errorHalt("Failed to open file");
+			return false;
 		}
 
 		// Clear current file contents
 		file_.truncate(0);
+		return true;
 	}
 
 	size_t internal_size() const noexcept override
