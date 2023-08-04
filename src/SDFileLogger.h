@@ -86,6 +86,10 @@ class SDFileLogger final : public LoggerBase
 		return true;
 	}
 
+	FsFile *get_file(){
+		return &file_;
+	}
+
 	size_t internal_size() const noexcept override
 	{
 		return log_buffer_.size();
