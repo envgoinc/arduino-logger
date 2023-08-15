@@ -64,6 +64,32 @@ class SDFileLogger final : public LoggerBase
 		flush();
 	}
 
+	bool rename_file(const char filename[15] = "log000.txt"){
+		return file_.rename(filename);
+	}
+
+	void close_file(){
+		flush();
+		if(!file_.close()){
+			errorHalt("Failed to close file");
+		}
+	}
+
+	bool open_file(const char filename[15] = "log000.txt"){
+		if(!file_.open(filename, O_WRITE | O_CREAT))
+		{
+			return false;
+		}
+
+		// Clear current file contents
+		file_.truncate(0);
+		return true;
+	}
+
+	FsFile *get_file(){
+		return &file_;
+	}
+
 	size_t internal_size() const noexcept override
 	{
 		return log_buffer_.size();
