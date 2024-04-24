@@ -22,7 +22,7 @@
 class SDFileLogger final : public LoggerBase
 {
   private:
-  	static constexpr size_t BUFFER_SIZE = 2048;
+	static constexpr size_t BUFFER_SIZE = 2048;
 	static constexpr size_t READY_BUFFER_SIZE = 512;
 
   public:
@@ -107,10 +107,7 @@ class SDFileLogger final : public LoggerBase
 
 	bool ready_buffer_exists() const noexcept override
 	{
-		if(&ready_buffer_){
-			return true;
-		}
-		return false;
+		return true;
 	}
 
 
@@ -219,7 +216,7 @@ class SDFileLogger final : public LoggerBase
 	mutable FsFile file_;
 
   protected:
-  	CircularBuffer<char, BUFFER_SIZE> log_buffer_;
+	CircularBuffer<char, BUFFER_SIZE> log_buffer_;
 	CircularBuffer<char, READY_BUFFER_SIZE> ready_buffer_;
 };
 
