@@ -48,9 +48,14 @@ class SDFileLogger final : public LoggerBase
 		print("[%d ms] ", millis());
 	}
 
-	void begin(SdFs& sd_inst, const char filename[13] = "log000.txt")
+	void begin()
 	{
-		fs_ = &sd_inst;
+		logToFile_ = false;
+	}
+
+	void begin(SdFs* sd_inst, const char filename[13] = "log000.txt")
+	{
+		fs_ = sd_inst;
 
 		if(!file_.open(filename, O_WRITE | O_CREAT))
 		{
@@ -157,24 +162,6 @@ class SDFileLogger final : public LoggerBase
 	void clear_() noexcept final
 	{
 		log_buffer_.reset();
-	}
-
-  private:
-	void errorHalt(const char* msg)
-	{
-		printf("Error: %s\n", msg);
-		if(fs_->sdErrorCode())
-		{
-			if(fs_->sdErrorCode() == SD_CARD_ERROR_ACMD41)
-			{
-				printf("Try power cycling the SD card.\n");
-			}
-			printSdErrorSymbol(&Serial, fs_->sdErrorCode());
-			printf(", ErrorData: 0x%x\n", fs_->sdErrorData());
-		}
-		while(true)
-		{
-		}
 	}
 
 	template<size_t T>
