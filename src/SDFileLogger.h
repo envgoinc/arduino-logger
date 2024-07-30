@@ -50,16 +50,16 @@ class SDFileLogger final : public LoggerBase
 
 	void begin()
 	{
-		logToFile_ = false;
+		// no SDCard.  Intentionally empty.
 	}
 
-	void begin(SdFs* sd_inst, const char filename[13] = "log000.txt")
+	void begin(SdFs& sd_inst, const char filename[13] = "log000.txt")
 	{
-		fs_ = sd_inst;
+		fs_ = &sd_inst;
 
 		if(!file_.open(filename, O_WRITE | O_CREAT))
 		{
-			errorHalt("Failed to open file");
+			sdError("Failed to open file");
 		}
 
 		// Clear current file contents
@@ -67,28 +67,6 @@ class SDFileLogger final : public LoggerBase
 
 		// Flush the buffer since the file is open
 		flush();
-	}
-
-	bool rename_file(const char filename[15] = "log000.txt"){
-		return file_.rename(filename);
-	}
-
-	void close_file(){
-		flush();
-		if(!file_.close()){
-			errorHalt("Failed to close file");
-		}
-	}
-
-	bool open_file(const char filename[15] = "log000.txt"){
-		if(!file_.open(filename, O_WRITE | O_CREAT))
-		{
-			return false;
-		}
-
-		// Clear current file contents
-		file_.truncate(0);
-		return true;
 	}
 
 	FsFile *get_file(){
@@ -115,7 +93,6 @@ class SDFileLogger final : public LoggerBase
 		return true;
 	}
 
-
 	size_t buffer_is_empty()
 	{
 		return log_buffer_.empty();
@@ -123,6 +100,10 @@ class SDFileLogger final : public LoggerBase
 
 	void prepareBuffer()
 	{
+		if(fs_ == nullptr) {
+			// no SDCard.  Just return.
+			return;
+		}
 		size_t val_size = sizeof(char);
 		for(size_t i = 0; i < (READY_BUFFER_SIZE/val_size); i++){
 			if(!ready_buffer_.full()){
@@ -151,6 +132,12 @@ class SDFileLogger final : public LoggerBase
 
 	void flush_() noexcept final
 	{
+		if(fs_ == nullptr) {
+			// no SDCard - we may want to send what is in the
+			// circular buffer over CAN at some point.
+			log_buffer_.reset();
+			return;
+		}
 		if(!ready_buffer_.empty()){
 			writeBufferToSDFile(&ready_buffer_);
 		}
@@ -191,7 +178,7 @@ class SDFileLogger final : public LoggerBase
 
 		if(static_cast<size_t>(bytes_written) != circular_buffer->size())
 		{
-			errorHalt("Failed to write to log file");
+			sdError("Failed to write to log file");
 		}
 
 		file_.flush();
@@ -199,8 +186,23 @@ class SDFileLogger final : public LoggerBase
 	}
 
   private:
-	SdFs* fs_;
+	SdFs* fs_{nullptr};
 	mutable FsFile file_;
+
+	void sdError(const char* msg)
+	{
+		printf("Error: %s\n", msg);
+		if(fs_->sdErrorCode())
+		{
+			if(fs_->sdErrorCode() == SD_CARD_ERROR_ACMD41)
+			{
+				printf("Try power cycling the SD card.\n");
+			}
+			printSdErrorSymbol(&Serial, fs_->sdErrorCode());
+			printf(", ErrorData: 0x%x\n", fs_->sdErrorData());
+		}
+		fs_ = nullptr;
+	}
 
   protected:
 	CircularBuffer<char, BUFFER_SIZE> log_buffer_;
