@@ -59,7 +59,8 @@ class SDFileLogger final : public LoggerBase
 
 		if(!file_.open(filename, O_WRITE | O_CREAT))
 		{
-			sdError("Failed to open file");
+			critical("Failed to open file.  SD error 0x%x\n", fs_->sdErrorCode());
+			fs_ = nullptr;
 		}
 
 		// Clear current file contents
@@ -141,9 +142,6 @@ class SDFileLogger final : public LoggerBase
 		if(!ready_buffer_.empty()){
 			writeBufferToSDFile(&ready_buffer_);
 		}
-		else{
-			writeBufferToSDFile(&log_buffer_);
-		}
 	}
 
 	void clear_() noexcept final
@@ -178,7 +176,7 @@ class SDFileLogger final : public LoggerBase
 
 		if(static_cast<size_t>(bytes_written) != circular_buffer->size())
 		{
-			sdError("Failed to write to log file");
+			critical("Bytes written doesn't match size.  SD error 0x%x\n", fs_->sdErrorCode());
 		}
 
 		file_.flush();
@@ -188,21 +186,6 @@ class SDFileLogger final : public LoggerBase
   private:
 	SdFs* fs_{nullptr};
 	mutable FsFile file_;
-
-	void sdError(const char* msg)
-	{
-		printf("Error: %s\n", msg);
-		if(fs_->sdErrorCode())
-		{
-			if(fs_->sdErrorCode() == SD_CARD_ERROR_ACMD41)
-			{
-				printf("Try power cycling the SD card.\n");
-			}
-			printSdErrorSymbol(&Serial, fs_->sdErrorCode());
-			printf(", ErrorData: 0x%x\n", fs_->sdErrorData());
-		}
-		fs_ = nullptr;
-	}
 
   protected:
 	CircularBuffer<char, BUFFER_SIZE> log_buffer_;
