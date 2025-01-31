@@ -177,7 +177,6 @@ class SDFileLogger final : public LoggerBase
 			critical("Bytes written doesn't match size.  SD error 0x%x\n", fs_->sdErrorCode());
 		}
 
-		file_.flush();
 		circular_buffer->reset();
 	}
 
