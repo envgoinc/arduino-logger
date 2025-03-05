@@ -48,14 +48,12 @@ class SDFileLogger final : public LoggerBase
 		print("[%d ms] ", millis());
 	}
 
-	void begin()
-	{
-		// no SDCard.  Intentionally empty.
-	}
-
 	void begin(SdFs& sd_inst, const char filename[13] = "log000.txt")
 	{
 		fs_ = &sd_inst;
+		if(fs_ == nullptr) {
+			return;
+		}
 
 		if(!file_.open(filename, O_WRITE | O_CREAT))
 		{
@@ -179,7 +177,6 @@ class SDFileLogger final : public LoggerBase
 			critical("Bytes written doesn't match size.  SD error 0x%x\n", fs_->sdErrorCode());
 		}
 
-		file_.flush();
 		circular_buffer->reset();
 	}
 
