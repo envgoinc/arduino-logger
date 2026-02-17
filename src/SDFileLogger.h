@@ -55,16 +55,19 @@ class SDFileLogger final : public LoggerBase
 			return;
 		}
 
-		if(!file_.open(filename, O_WRITE | O_CREAT))
+		if(file_.isOpen() && !file_.close())
 		{
-			critical("Failed to open file.  SD error 0x%x\n", fs_->sdErrorCode());
-			fs_ = nullptr;
+			critical("Failed to close file before reopening.  SD error 0x%x\n", fs_->sdErrorCode());
+			return;
 		}
 
-		// Clear current file contents
-		file_.truncate(0);
+		if(!file_.open(filename, O_WRITE | O_CREAT | O_TRUNC))
+		{
+			critical("Failed to open file.  SD error 0x%x\n", fs_->sdErrorCode());
+			return;
+		}
 
-		// Flush the buffer since the file is open
+		// Flush the buffer since the file is open.
 		flush();
 	}
 
